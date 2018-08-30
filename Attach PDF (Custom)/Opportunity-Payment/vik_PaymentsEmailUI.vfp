@@ -1,0 +1,35 @@
+<apex:page standardController="Opportunity" extensions="vik_ThisOppController">
+<!--apex:page Controller="vik_ThisOppController"-->
+    <h1 style= "font-size:38px; font-family:Helvetica;">
+        Send Email
+    </h1>
+    <hr></hr>
+    <br/><br/><br/>
+    <div style="font-size:12px; font-family:sans-serif, monospace; color:#8c8c8c; letter-spacing:3px;">OPPORTUNITY PRIMARY CONTACT</div>
+    <div style="font-size:20px; font-family:sans-serif, monospace; color:#262626;">
+    	{!opportunity.npsp__Primary_Contact__r.LastName}, {!opportunity.npsp__Primary_Contact__r.FirstName}
+    </div>
+    <br/><br/>
+    <div style="font-size:12px; font-family:sans-serif, monospace; color:#8c8c8c; letter-spacing:3px;">RECIPIENT EMAIL ADDRESS</div>
+	<div style="font-size:20px; font-family:sans-serif, monospace; color:#262626;">
+    	{!opportunity.npsp__Primary_Contact__r.Email}
+	</div>
+           
+    <!--apex:pageBlock>
+    	<!--apex:pageBlockTable value="{!Opportunity}" var="opp">
+            <apex:column headerValue="Name">{!opp.npsp__Primary_Contact__r.LastName}, {!opp.npsp__Primary_Contact__r.FirstName}</apex:column>
+            <apex:column headerValue="Email">{!opp.npsp__Primary_Contact__r.Email}</apex:column>
+        </apex:pageBlockTable-->
+        
+    <br/><br/>
+        <apex:form >
+            <apex:outputLabel for="Subject" style="font-size:12px; font-family:sans-serif, monospace; color:rgb(248,69,69); letter-spacing:3px;">
+                SUBJECT</apex:outputLabel><br/>
+            <apex:inputText size="80" maxlength="80" id="Subject" value="{!emailSubject}" style="font-size:14px; font-family:sans-serif, monospace; color:#262626;"/><br/><br/>
+            <apex:outputLabel for="Body" style="font-size:12px; font-family:sans-serif, monospace; color:rgb(248,69,69); letter-spacing:3px;">
+                BODY</apex:outputLabel><br/>
+            <apex:inputTextArea cols="95" rows="8" id="Body" value="{!emailBody}" style="font-size:14px; font-family:sans-serif, monospace; color:#262626;"/><br/><br/>
+            <apex:commandButton value="SEND" action="{!SendEmail}" title="Send Email" style="font-size:18px; font-family:sans-serif, monospace; color:#262626;"/>
+        </apex:form>
+    <!--/apex:pageBlock-->
+</apex:page>

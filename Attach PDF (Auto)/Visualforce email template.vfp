@@ -1,0 +1,14 @@
+<messaging:emailTemplate subject="Payment Information Attached for your recurring donation" recipientType="Contact" relatedToType="Opportunity" replyTo="im.kumarvikash@gmail.com">
+
+<messaging:attachment renderAs="PDF" filename="Payment Information.pdf">
+    <c:IncludeAttachments opportunityId="{!relatedTo.Id}" />
+</messaging:attachment>
+
+<messaging:plainTextEmailBody >
+Hi {!relatedTo.npsp__Primary_Contact__r.FirstName},
+
+Thank you for being our valuable customer. Please find the attached payment information corresponding to your donation.
+
+Thank You!
+</messaging:plainTextEmailBody>
+</messaging:emailTemplate>

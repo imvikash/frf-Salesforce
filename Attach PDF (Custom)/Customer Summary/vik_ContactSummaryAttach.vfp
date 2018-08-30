@@ -1,0 +1,220 @@
+<apex:page controller="vik_ContactSummaryAttachController" standardStylesheets="false" showHeader="false" applyHtmlTag="false" renderAs="pdf">
+<head>
+    <style type="text/css">
+        table {           
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td.label{
+            font-family: sans-serif;
+            padding: 8px 8px 8px 0px;
+            text-align: left;
+            border-bottom: 1px solid #a9b1ef;
+            font-size: 13px; 
+            color: #666666;
+        }
+        td.data{
+            font-family: sans-serif;
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #a9b1ef;
+            font-size: 13px; 
+        }
+        th{
+            font-family: sans-serif;
+            padding: 8px 8px 8px 0px;
+            text-align: left;
+            border-bottom: 2px solid #a9b1ef;
+            font-size: 13px;
+            color: #333;
+        }
+        .default{
+            font-family: sans-serif;
+            font-size: 13px;
+            text-align: justify;
+            text-align-last: right;
+            text-justify: inter-word;
+            line-height: 1.4;            
+        }
+        .heading1{
+            font-family: sans-serif;
+            text-align: left;
+            font-size: 18px;
+            font-weight: 700;
+            color: #c8102e;
+            padding-top: 4px;
+            padding-bottom: 10px;
+            border-top: 2px solid #c8102e;
+        }
+        hr{
+            size: 50px;
+            color: #c8102e;
+        }
+    </style>
+</head>
+    
+    <table>
+        <tr>
+            <td style="vertical-align: top; width: 23%">
+                <!--img src="https://firstresponders--c.na72.content.force.com/servlet/servlet.ImageServer?id=0151H000006LkoD&oid=00D1H000000OAf0&lastMod=1531504278000" /-->
+                <img src="https://firstresponders--partcopy--c.cs93.content.force.com/servlet/servlet.ImageServer?id=0154F0000000wJO&oid=00D4F0000000Ql3&lastMod=1531847826000" />
+            </td>
+            <td>
+                <div style="font-size: 40px; font-family:sans-serif; font-weight: 900; color: #151f6d">
+                    ACCOUNT INFORMATION
+                </div>
+                <div style="font-size: 20px; font-family:sans-serif; font-weight: 900; color:#151f6d; letter-spacing:3px;">
+                    <apex:outputText value="{0, date, EEEE, MMMM dd, yyyy}">                       
+                        <apex:Param value="{!TODAY()}" />
+                    </apex:outputText>
+                </div>                
+                <div class="default" style="text-align: left;">
+                    <br/>{!contact.Name}
+                    <br/>{!contact.Email}{! IF(ISBLANK(contact.HomePhone), '', ' | '+contact.HomePhone)}{! if(ISBLANK(contact.MobilePhone), '', ' | '+contact.MobilePhone) }
+                    <br/>{! IF(ISBLANK(contact.MailingStreet), '(Please update your address)', contact.MailingStreet)}{! IF(ISBLANK(contact.MailingCity), '', ', '+contact.MailingCity)}{! IF(ISBLANK(contact.MailingState), '', ', '+contact.MailingState)}
+                    		{! IF(ISBLANK(contact.MailingPostalCode), '', ' '+contact.MailingPostalCode)}{! IF(ISBLANK(contact.MailingCountry), '', ', '+contact.MailingCountry)}
+                    <br/><br/>
+                </div>
+            </td>
+        </tr>        
+    </table>  
+         
+    <div class="heading1">firstrespondersomaha.org - About Us
+    </div>
+    <br/>
+    <div class="default">
+    Donations to the First Responders Foundation support our key programs and provide additional funds for other initiatives for the police and fire departments. We work directly with police and 
+    fire departments to fulfill wish-lists and prioritize resources so donations go where they are needed most. Over the years we have continued to grow, fundraise, create programs, organize events, 
+    and provide resources that support our first responders and make the community a better place to live. This is only possible because of thoughtful contributions from donors like you.
+    </div>
+    <br/>
+    <div class="default">    
+    The First Responders Foundation has a 501(c)(3) designation so your donation is tax deductible. Please reach out to us to get an acknowledgement letter for the donations that is accepted by the IRS.
+    </div>    
+    <br/><br/>
+    
+    <div class="heading1">Donation Information
+    </div>
+    <table>
+        <tr>
+            <td class="label" style="width: 32%">First Donation Date</td>
+            <td class="data" style="width: 18%">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{! IF(ISBLANK(contact.npo02__FirstCloseDate__c), '', contact.npo02__FirstCloseDate__c)}" />
+				</apex:outputText>
+            </td>
+            <td class="label" style="width: 32%; border-left: 10px solid white">Membership</td>
+            <td class="data" style="width: 18%">{! IF(ISBLANK(contact.npo02__LastMembershipLevel__c), 'None', contact.npo02__LastMembershipLevel__c)}</td>
+        </tr>
+        <tr>
+            <td class="label">Last Donation Date</td>
+            <td class="data">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{! IF(ISBLANK(contact.npo02__LastCloseDate__c), '', contact.npo02__LastCloseDate__c)}" />
+				</apex:outputText>
+            </td>
+            <td class="label" style="border-left: 10px solid white">Membership Since</td>
+            <td class="data">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{! IF(ISBLANK(contact.npo02__MembershipJoinDate__c), '', contact.npo02__MembershipJoinDate__c)}" />
+				</apex:outputText>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Total Donation This Year</td>
+            <td class="data">$ {! IF(ISBLANK(contact.npo02__OppAmountThisYear__c), '0.00', contact.npo02__OppAmountThisYear__c)}</td>
+            <td class="label" style="border-left: 10px solid white">Membership End Date</td>
+            <td class="data">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{! IF(ISBLANK(contact.npo02__MembershipEndDate__c), '', contact.npo02__MembershipEndDate__c)}" />
+				</apex:outputText>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Total Number of Donations</td>
+            <td class="data">{! IF(ISBLANK(contact.npo02__NumberOfClosedOpps__c), 'NA', contact.npo02__NumberOfClosedOpps__c)}</td>
+            <td class="label" style="border-left: 10px solid white">Total Membership Amount</td>
+            <td class="data">$ {! IF(ISBLANK(contact.npo02__TotalMembershipOppAmount__c), '0.00', contact.npo02__TotalMembershipOppAmount__c)}</td>
+        </tr>
+        <tr>
+            <td class="label">Total Donations</td>
+            <td class="data">$ {! IF(ISBLANK(contact.npo02__TotalOppAmount__c), '0.00', contact.npo02__TotalOppAmount__c)}</td>            
+        </tr>
+    </table>
+    
+    <br/><br/>
+    <div class="heading1">Last Five (5) Donations
+    </div>
+    <table>
+        <tr>
+            <th class="label">Date Received</th>
+            <th class="label" style="width: 33%">Amount</th>
+            <th class="label" style="width: 33%">Last Payment Mode</th>
+        </tr>
+        <apex:repeat value="{!opps}" var="opp">
+        <tr>
+            <td class="label">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{!opp.CloseDate }" />
+				</apex:outputText>
+            </td>
+            <td class="label">$ {!IF(ISBLANK(opp.Amount), '0.00', opp.Amount)}</td>
+            <td class="label">{!opp.Payment_Method__c}</td>
+        </tr>
+		</apex:repeat>
+    </table>
+    
+    <br/><br/><br/><br/><br/>
+    <div class="heading1">Upcoming Five (5) Donations (scheduled)
+    </div>
+    <table>
+        <tr>
+            <th class="label">Scheduled Date</th>
+            <th class="label" style="width: 33%">Amount</th>
+            <th class="label" style="width: 33%">Payment Mode</th>
+        </tr>
+        <apex:repeat value="{!comingOpps}" var="opp">
+        <tr>
+            <td class="label">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{!opp.CloseDate }" />
+				</apex:outputText>
+            </td>
+            <td class="label">$ {!opp.Amount}</td>
+            <td class="label">{!opp.Description}</td>
+        </tr>
+        </apex:repeat>
+    </table>
+    
+    <br/><br/>
+    <div class="heading1">Recurring Donations Setup
+    </div>
+    <table>
+        <tr>
+            <th class="label">Date Established</th>
+            <th class="label">Type</th>
+            <th class="label">Amount Paid</th>
+            <th class="label">Next Donation Date</th>
+            <th class="label">Installment ($)</th>
+            <th class="label">Payment Mode</th>
+        </tr>
+        <apex:repeat value="{!recSetup}" var="rec">
+        <tr>
+            <td class="label">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{!rec.npe03__Date_Established__c }" />
+				</apex:outputText>
+            </td>
+            <td class="label">{!rec.npe03__Installment_Period__c}</td>
+            <td class="label">$ {!IF(ISBLANK(rec.npe03__Paid_Amount__c), '0.00', rec.npe03__Paid_Amount__c)}</td>
+            <td class="label">
+            	<apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{!rec.npe03__Next_Payment_Date__c }" />
+				</apex:outputText>
+            </td>            
+            <td class="label">{!rec.npe03__Installment_Amount__c}</td>
+            <td class="label">{!rec.Temp_String__c}</td>
+        </tr>
+        </apex:repeat>
+    </table>
+</apex:page>

@@ -1,0 +1,136 @@
+trigger vik_TransactionTrigger on IATSPayment__Transaction__c (after insert) {
+    
+    //iterate over transactions present in the trigger
+    for(IATSPayment__Transaction__c trans : trigger.new){ 
+        
+        Opportunity[] opp = [SELECT Id, npsp__Primary_Contact__c  FROM Opportunity WHERE Id= :trans.IATSPayment__Opportunity__c];
+        
+        //A. If there is no opportunity present (erroneous case) or transaction declined
+        if(opp.isEmpty()){
+            System.debug('No Opportunity associated with the transaction: ' + trans.Name);
+            List<User> admins = [SELECT FirstName, Email FROM User WHERE Profile.Name = 'System Administrator'];
+            //Email to all admins
+            for(User admin: admins){
+                System.debug('Sending Email to - ' + admin.Email);
+                String[] toAddresses = new String[]{admin.Email};
+                String emailBody = 'Dear ' + admin.FirstName + ',\n\n' + 
+                    'There was some problem with the transaction ID ' + trans.Name +
+                    '. The transaction did not map to any of the donations and hence, ' + 
+                    'did not trigger any acknowledgement. Please follow up ' +
+                    'with the issue using the provided ID. \n\nQuick tip - \n1. Search the code ID ' + 
+                    'in the search bar. \n2. Add relevant Opportunity by looking it up. ' + 
+                    '\n3. Manually send acknowledgement.\n\n Best regards!\nVikash';
+                String subject = 'Salesforce - Error in transaction details';
+                vik_SingleEmailMessage.sendPlainEmail(toAddresses, null, subject, emailBody);
+            }
+            continue;
+        }
+        
+        //B. If there is an opportunity and transaction got rejected
+        if(trans.IATSPayment__Status__c.contains('Reject')){
+            System.debug('Transaction got rejected: ' + trans.Name);
+            List<User> admins = [SELECT FirstName, Email FROM User WHERE Profile.Name = 'System Administrator'];
+            //Email to all admins
+            for(User admin: admins){
+                System.debug('Sending Email to - ' + admin.Email);
+                String[] toAddresses = new String[]{admin.Email};
+                String emailBody = 'Dear ' + admin.FirstName + ',\n\n' + 
+                    'The transaction with ID ' + trans.Name +
+                    ' got rejected. It can be due to lot of reasons like incorrect payment details, etc. ' + 
+                    'Please reach out to the concerned person if number of rejected transactions is alarming ' +
+                    'as it might be due to a bug in the system. \n\nPlease don\'t be alarmed if this is the only email ' + 
+                    'with a rejected transaction, as it is perfectly normal.\n\n Best regards!\nVikash';
+                String subject = 'Salesforce - Transaction Rejected';
+                vik_SingleEmailMessage.sendPlainEmail(toAddresses, null, subject, emailBody);
+            }
+            continue;
+        }
+        
+    	//C. If there is an opportunity present and transaction is approved (ideal case)
+    	//__a. Add Last Transaction ID and Payment Method to Opportunity
+        opp[0].Last_Transaction__c = trans.Id;        
+        
+        System.debug('ACH - ' + trans.IATSPayment__ACH_Account_Number__c);
+        System.debug('CC - ' + trans.IATSPayment__Credit_Card__c);
+        
+        if(trans.IATSPayment__ACH_Account_Number__c != null && trans.IATSPayment__Status__c.contains('Approved')){
+            opp[0].Payment_Method__c = trans.IATSPayment__Method_of_Payment__c + ': ' + trans.IATSPayment__ACH_Account_Number__c;
+        }
+        else if(trans.IATSPayment__Credit_Card__c != null && trans.IATSPayment__Status__c.contains('Approved')){
+            opp[0].Payment_Method__c = trans.IATSPayment__Method_of_Payment__c + ': ' + trans.IATSPayment__Credit_Card__c;
+        }        
+        upsert opp[0];
+        
+        //__b. Update Payment Method in Corresponding Payment
+        List<npe01__OppPayment__c> pay = [SELECT Name, npe01__Payment_Method__c FROM npe01__OppPayment__c 
+											WHERE npe01__Opportunity__c = :opp[0].id AND npe01__Payment_Amount__c=:trans.IATSPayment__Amount_currency__c];
+        pay[0].npe01__Payment_Method__c = trans.IATSPayment__Method_of_Payment__c;
+        upsert pay[0];
+        
+    	//__b. Send Email if approved
+        Contact[] con = [SELECT Id, Email FROM Contact WHERE Id= :opp[0].npsp__Primary_Contact__c];
+        List<String> toRecipients=new List<String>{con[0].Email};
+        List<String> ccRecipients=new List<String>{'im.kumarvikash@gmail.com'};
+        Id targetObjId=opp[0].npsp__Primary_Contact__c;
+        Id whatId=opp[0].Id;
+        Id orgWideEmailId='0D24F000000CaazSAC';
+        Boolean saveAsActivity=TRUE;
+        String templateApiName='Payment_Acknowledgement';
+        if(Schema.SObjectType.Opportunity.getRecordTypeInfosById().get(opp[0].recordtypeid).getname().equals('Membership')){
+            templateApiName='Membership_Acknowledgement';
+        }
+        String emailResult = vik_SendTemplateEmail.sendTemplatedEmail(toRecipients, null, templateApiName, targetObjId, whatId, orgWideEmailId, saveAsActivity);
+        System.debug(LoggingLevel.INFO,'** entered PostedOppTrigger, to:' + toRecipients + ' cc:' + ccRecipients +  ' templateAPI:' + templateApiName + ' tagetObjId:' + targetObjId + 
+                        ' whatId:' + whatId + ' orgWideEmailId: ' + orgWideEmailId);    
+        
+        //
+        if(emailResult.equalsIgnoreCase('Email Successfully Sent!')){
+            //Update Acknowledgement Date and Status
+            opp[0].npsp__Acknowledgment_Status__c = 'Acknowledged';
+            opp[0].npsp__Acknowledgment_Date__c = Date.today();
+        }
+        else{
+            //Update Acknowledgement Status
+            opp[0].npsp__Acknowledgment_Status__c = 'Email Acknowledgment Not Sent';
+        }
+        upsert(opp[0]);
+        System.debug('Opportunity Acknowledgement Status updated.');
+    }
+}
+/*
+IATSPayment__Transaction__c trans = new IATSPayment__Transaction__c();
+trans.Name = 'ZZZ999111';
+trans.IATSPayment__Amount_currency__c = 50;
+trans.IATSPayment__Opportunity__c = '0064F000002gIm1QAE';
+insert trans;
+*/
+
+/* Testing bulk
+List<IATSPayment__Transaction__c> transList = new List<IATSPayment__Transaction__c>{};
+IATSPayment__Transaction__c trans = new IATSPayment__Transaction__c();
+trans.Name = 'ZZZ999124';
+trans.IATSPayment__Amount_currency__c = 50;
+transList.add(trans);
+trans = new IATSPayment__Transaction__c();
+trans.Name = 'ZZZ999125';
+trans.IATSPayment__Amount_currency__c = 51;
+transList.add(trans);
+trans = new IATSPayment__Transaction__c();
+trans.Name = 'ZZZ999126';
+trans.IATSPayment__Amount_currency__c = 50;
+trans.IATSPayment__Opportunity__c = '0064F000002gUfBQAU';
+transList.add(trans);
+    
+insert transList;
+*/
+
+/*
+IATSPayment__Transaction__c trans = new IATSPayment__Transaction__c();
+trans.Name = 'ZZZ999151';
+trans.IATSPayment__Amount_currency__c = 50;
+trans.IATSPayment__Method_of_Payment__c = 'Credit Card';
+trans.IATSPayment__Credit_Card__c = '422******2220';
+trans.IATSPayment__Opportunity__c = '0064F000002gUfBQAU';
+trans.IATSPayment__Status__c = 'Approved: Alpha';
+insert trans;
+ */

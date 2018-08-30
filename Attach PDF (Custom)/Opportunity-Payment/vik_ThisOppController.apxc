@@ -1,0 +1,48 @@
+public with sharing class vik_ThisOppController {
+    private Opportunity opp {get; set;}
+    
+    public vik_ThisOppController(ApexPages.StandardController stdController) {
+        this.opp = (Opportunity)stdController.getRecord();
+        emailSubject = 'Payment Details for your Donation';
+        emailBody = 'Hi ' + opp.npsp__Primary_Contact__r.FirstName + ',\n\nYour payment details are attached with this email.\n\nBest Regards,';
+        /*opp = [SELECT Name, (
+        			SELECT FirstName, LastName, Email
+        			FROM Opportunity.npsp__Primary_Contact__r)
+              	FROM Opportunity
+              	WHERE Id=:ApexPages.currentPage().getParameters().get('id')];*/
+    }
+    
+    public PageReference SendEmail(){
+        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+        PageReference paymentPdf = Page.vik_oppPayAttachment;
+        paymentPdf.getParameters().put('OpportunityId', ApexPages.currentPage().getParameters().get('id'));
+        //paymentPdf.getParameters().put('OpportunityId', '006f400000Cdod4AAB');	//Dummy data for Insigne, Lorezo
+        paymentPdf.setRedirect(true);
+        
+        //Blob pdf = paymentPdf.getContent();
+        Blob pdf = paymentPdf.getContentAsPDF();	//If the VF Page is not set to render as PDF
+        
+        Messaging.EmailFileAttachment emailPdf = new Messaging.EmailFileAttachment();
+        emailPdf.setFileName('PaymentDetails.pdf');
+        emailPdf.setBody(pdf);
+        
+        List<String> emailAdds = new List<String>();
+        
+        emailAdds.add(opp.npsp__Primary_Contact__r.Email);
+        //emailAdds.add('im.kumarvikash@gmail.com');
+        
+        email.setSubject(emailSubject);
+        email.setPlainTextBody(emailBody);
+        email.setToAddresses(emailAdds);
+        email.setFileAttachments(new Messaging.EmailFileAttachment[] {emailPdf});
+        
+        Messaging.SendEmailResult[] r = Messaging.sendEmail(new Messaging.SingleEmailMessage[] {email});
+        
+        String returnUrl = ApexPages.currentPage().getParameters().get('id');
+        
+        return new Pagereference('/' + returnUrl);
+    }
+    
+    public String emailSubject{get; set;}
+    public String emailBody{get; set;}
+}

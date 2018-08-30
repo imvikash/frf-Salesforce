@@ -1,0 +1,7 @@
+<apex:component controller="vik_IncludeAttachmentsController" access="global">
+    <apex:attribute name="opportunityId"
+                    description="Opportunity Id"
+                    assignTo="{!opportunityObjectId}"
+                    type="Id"/>
+    <apex:outputText value="{!pageContents}" escape="false"/>
+</apex:component>

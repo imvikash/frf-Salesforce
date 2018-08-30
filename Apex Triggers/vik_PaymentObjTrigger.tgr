@@ -1,0 +1,68 @@
+/*
+ *If Paid - updates Opportunity (Payment Method, Stage)
+ */
+
+trigger vik_PaymentObjTrigger on npe01__OppPayment__c (after insert, after update) {
+    
+    String errorMessage = 'Log Report:\n';
+    for (npe01__OppPayment__c pay: Trigger.New){       
+        System.debug('Trigger initiated - vik_PaymentObjTrigger');
+        errorMessage = errorMessage + '\n_ Trigger initiated - vik_PaymentObjTrigger';
+        //If Payment status is Paid and Payment method is Cash/Check
+        //__find the opportunity for the payment
+        try{
+            if(pay.npe01__Paid__c == TRUE){
+			//if(pay.npe01__Paid__c == TRUE && pay.npe01__Payment_Method__c.equals('Cash') || pay.npe01__Payment_Method__c.equals('Check')){                
+                System.debug('Paid with ' + pay.npe01__Payment_Method__c);
+                errorMessage = errorMessage + '\n_ Paid with ' + pay.npe01__Payment_Method__c;
+                String pay_method = pay.npe01__Payment_Method__c;
+                Opportunity[] opp = [SELECT Name, npe01__Payments_Made__c, Amount FROM Opportunity WHERE Id IN(
+                                    SELECT npe01__Opportunity__c 
+                                    FROM npe01__OppPayment__c WHERE Id= :pay.Id)];                      
+                if(!opp.isEmpty()){
+                    System.debug('Found an Opportunity for the payment');
+                    errorMessage = errorMessage + '\n_ Found an Opportunity for the payment';
+                    opp[0].Payment_Method__c = pay_method;
+                    System.debug('Checking if Opportunity Payments Made - $' + opp[0].npe01__Payments_Made__c + ' + ' + pay.npe01__Payment_Amount__c + ' >= Opportunity Amount - $' + opp[0].Amount);
+                    if(opp[0].npe01__Payments_Made__c + pay.npe01__Payment_Amount__c >= opp[0].Amount){
+                    	opp[0].StageName = 'Posted';
+                        System.debug('Opportunity Stage changed to Posted');
+                    }
+                    upsert(opp[0]);
+                    System.debug('Opportunity Payment method updated.');
+                    errorMessage = errorMessage + '\n_ Opportunity Payment method updated.';
+                }
+                else{
+                    System.debug('No Opportunity present for the payment');
+                    errorMessage = errorMessage + '\n_ No Opportunity present for the payment';
+                }
+            }
+            else{
+                System.debug('Unpaid or Payment via Credit Card/ACH');
+                errorMessage = errorMessage + '\n_ Unpaid or Payment via Credit Card/ACH';
+            }
+        } catch (System.NullPointerException e){
+            System.debug('sendTemplatedEmail error. ' + e.getMessage());
+            errorMessage = errorMessage + '\n_ sendTemplatedEmail error. ' + e.getMessage();
+            //vik_sendErrorEmail.sendError(errorMessage);
+        }        
+    }
+}
+/*
+npe01__OppPayment__c pay = new npe01__OppPayment__c();
+pay.npe01__Opportunity__c = '0064F000002gIm1QAE';
+pay.npe01__Payment_Amount__c = 10;
+pay.npe01__Paid__c = TRUE;
+pay.npe01__Payment_Method__c = 'Cash';
+insert pay;
+ */
+
+/*
+Opportunity opp = new Opportunity();
+opp.Name = 'Testing Trigger Opp';
+opp.AccountId = '0014F000006uOvCQAU';
+opp.StageName = 'Posted';
+opp.CloseDate = Date.today();
+opp.npe01__Do_Not_Automatically_Create_Payment__c = FALSE;
+insert opp;
+ */

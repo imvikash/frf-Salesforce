@@ -1,0 +1,28 @@
+trigger vik_PostedOppTrigger on Opportunity (after update, after insert) {
+//Trigger to fire when status changes from pledged to Posted - which is common for 
+//Recurring Donation
+
+    List<Opportunity> oppList = new List<Opportunity>();
+    
+    //Iterate over triggered Opportunities that have stage change to Posted
+    for(Opportunity opp : trigger.new) {
+        if(trigger.IsInsert == False && opp.StageName == 'Posted' && trigger.oldMap.get(opp.Id).StageName == 'Pledged') 
+            oppList.add(opp);
+        else if(trigger.IsInsert == True && opp.StageName == 'Posted')
+            oppList.add(opp);
+    }
+    
+    for(Opportunity opp : oppList){
+        Contact[] primaryContact = [SELECT Name, Email FROM Contact WHERE Id= :opp.npsp__Primary_Contact__c];
+        List<String> toRecipients=new List<String>{primaryContact[0].Email};
+        List<String> ccRecipients=new List<String>{'im.kumarvikash@gmail.com'};
+        String templateApiName='Payment_Acknowledgement';
+        Id targetObjId=opp.npsp__Primary_Contact__c;
+        Id whatId=opp.Id;
+        Id orgWideEmailId='0D24F000000CaazSAC';
+        Boolean saveAsActivity=TRUE;
+        String emailResult = vik_SendTemplateEmail.sendTemplatedEmail(toRecipients, null, templateApiName, targetObjId, whatId, orgWideEmailId, saveAsActivity);
+        System.debug(LoggingLevel.INFO,'** entered PostedOppTrigger, to:' + toRecipients + ' cc:' + ccRecipients +  ' templateAPI:' + templateApiName + ' tagetObjId:' + targetObjId + 
+                        ' whatId:' + whatId + ' orgWideEmailId: ' + orgWideEmailId);
+    }
+}

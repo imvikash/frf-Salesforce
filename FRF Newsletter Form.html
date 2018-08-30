@@ -1,0 +1,34 @@
+<!--  ----------------------------------------------------------------------  -->
+<!--  NOTE: Please add the following <META> element to your page <HEAD>.      -->
+<!--  If necessary, please modify the charset parameter to specify the        -->
+<!--  character set of your HTML page.                                        -->
+<!--  ----------------------------------------------------------------------  -->
+
+<META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=UTF-8">
+<script src="https://www.google.com/recaptcha/api.js"></script>
+<script>
+ function timestamp() { var response = document.getElementById("g-recaptcha-response"); if (response == null || response.value.trim() == "") {var elems = JSON.parse(document.getElementsByName("captcha_settings")[0].value);elems["ts"] = JSON.stringify(new Date().getTime());document.getElementsByName("captcha_settings")[0].value = JSON.stringify(elems); } } setInterval(timestamp, 500); 
+</script>
+
+<!--  ----------------------------------------------------------------------  -->
+<!--  NOTE: Please add the following <FORM> element to your page.             -->
+<!--  ----------------------------------------------------------------------  -->
+
+<form action="https://webto.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8" method="POST">
+
+<input type=hidden name='captcha_settings' value='{"keyname":"Newsletter","fallback":"true","orgId":"00D1H000000OAf0","ts":""}'>
+<input type=hidden name="oid" value="00D1H000000OAf0">
+<input type=hidden name="retURL" value="https://firstrespondersomaha.org/">
+<input type=hidden name="lead_source" value="Web">
+
+<label for="first_name">First Name</label><input  id="first_name" maxlength="40" name="first_name" size="20" type="text" required/><br>
+
+<label for="last_name">Last Name</label><input  id="last_name" maxlength="80" name="last_name" size="20" type="text" required/><br>
+
+<label for="email">Email</label><input  id="email" maxlength="80" name="email" size="20" type="text" required/><br>
+<br>
+
+<div class="g-recaptcha" data-sitekey="6LfSk2sUAAAAAPSr73pMYVX2lS7DxlPckW5ONZ9f"></div><br>
+<input type="submit" name="submit">
+
+</form>

@@ -1,0 +1,23 @@
+#Mapping values
+#Mon Aug 13 12:55:58 CDT 2018
+Mailing\ State=State
+Mailing\ City=City
+Country=npsp__CompanyCountry__c
+Primary\ Email=Email
+Last\ Name=LastName
+Mailing\ Country=Country
+Blacbaud\ Id=Blackbaud_Id__c
+Street=npsp__CompanyStreet__c
+State=npsp__CompanyState__c
+Job\ Title=Title
+Web\ Page=Website
+Mailing\ Postal\ Code=PostalCode
+Company=Company
+Mailing\ Street=Street
+Attributes=Attributes__c
+Date\ of\ Birth=Birthdate__c
+Salutation=Salutation
+First\ Name=FirstName
+Zip\ Code=npsp__CompanyPostalCode__c
+Secondary\ Email=Secondary_Email__c
+City=npsp__CompanyCity__c

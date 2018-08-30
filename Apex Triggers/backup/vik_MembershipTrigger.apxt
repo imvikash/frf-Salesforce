@@ -1,0 +1,50 @@
+trigger vik_MembershipTrigger on Opportunity (before insert) {
+	
+    System.debug('vik_MembershipTrigger triggered');
+    List<Opportunity> oppList = new List<Opportunity>();
+    
+    //Identify Opportunity Record Type as Membership
+    //Check if Stage is Posted
+    for(Opportunity opp:Trigger.New){
+        if(opp.StageName=='Posted' && Schema.SObjectType.Opportunity.getRecordTypeInfosById().get(opp.recordtypeid).getname().equals('Membership')){
+            System.debug('Membership record Found');
+            Contact[] contact = [SELECT Name, Email, npo02__NumberOfMembershipOpps__c, npo02__MembershipEndDate__c FROM Contact
+                                 WHERE Id=:opp.npsp__Primary_Contact__c];
+            System.debug('The member: ' + contact[0].Name + ' has ' + contact[0].npo02__NumberOfMembershipOpps__c + ' memberships ending ' + contact[0].npo02__MembershipEndDate__c);
+            Date membershipEndDate = contact[0].npo02__MembershipEndDate__c;
+            
+            //Reacquire: when past 7 days grace period
+            if(contact[0].npo02__NumberOfMembershipOpps__c > 0 && Date.today() > membershipEndDate.addDays(7)){
+                opp.npe01__Membership_Origin__c = 'Reacquire';
+                opp.npe01__Membership_Start_Date__c = Date.today();
+            	opp.npe01__Membership_End_Date__c = Date.today().addYears(1);
+            }
+            //Renewal: when renewed within 7 days of expiry
+            else if(contact[0].npo02__NumberOfMembershipOpps__c > 0 && Date.today() <= membershipEndDate.addDays(7)){
+                opp.npe01__Membership_Origin__c = 'Renewal';
+                opp.npe01__Membership_Start_Date__c = membershipEndDate;
+            	opp.npe01__Membership_End_Date__c = membershipEndDate.addYears(1);
+            }
+            //New
+            else{
+                opp.npe01__Membership_Origin__c = 'New';
+                opp.npe01__Membership_Start_Date__c = Date.today();
+            	opp.npe01__Membership_End_Date__c = Date.today().addYears(1);
+            }
+            
+/*            //Email notification (Apart from the original transaction email)
+            List<String> toRecipients=new List<String>{contact[0].Email};
+            List<String> ccRecipients=new List<String>{'im.kumarvikash@gmail.com'};
+            String templateApiName='Membership_Acknowledgement';
+            Id targetObjId=contact[0].id;
+            Id whatId=opp.Id;
+            Id orgWideEmailId='0D24F000000CaazSAC';
+            Boolean saveAsActivity=TRUE;
+            String emailResult = vik_SendTemplateEmail.sendTemplatedEmail(toRecipients, null, templateApiName, targetObjId, whatId, orgWideEmailId, saveAsActivity);
+            System.debug(LoggingLevel.INFO,'** entered vik_MembershipTrigger. Attempting Members email notification, to:' + toRecipients + ' cc:' + ccRecipients +  ' templateAPI:' + templateApiName + ' tagetObjId:' + targetObjId + 
+                            ' whatId:' + whatId + ' orgWideEmailId: ' + orgWideEmailId);
+*/
+        }
+    }
+    upsert oppList;
+}

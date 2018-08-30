@@ -1,0 +1,26 @@
+trigger vik_NewRecurringSetupTrigger on npe03__Recurring_Donation__c (after insert) {
+    
+    for(npe03__Recurring_Donation__c recDonation: Trigger.New){
+        Contact[] con = [SELECT Id, Email FROM Contact WHERE Id= :recDonation.npe03__Contact__c];
+        List<String> toRecipients=new List<String>{con[0].Email};
+        List<String> ccRecipients=new List<String>{'im.kumarvikash@gmail.com'};
+        String templateApiName='Recurring_Donation_Setup_Acknowledgment';
+        Id targetObjId=con[0].Id;
+        Id whatId=recDonation.Id;
+        Id orgWideEmailId='0D24F000000CaazSAC';
+        Boolean saveAsActivity=TRUE;
+        System.debug(LoggingLevel.INFO,'** entered PostedOppTrigger, to:' + toRecipients + ' cc:' + ccRecipients +  ' templateAPI:' + templateApiName + ' tagetObjId:' + targetObjId + 
+                        ' whatId:' + whatId + ' orgWideEmailId: ' + orgWideEmailId);
+        String emailResult = vik_SendTemplateEmail.sendTemplatedEmail(toRecipients, null, templateApiName, targetObjId, whatId, orgWideEmailId, saveAsActivity);
+    }
+}
+
+/*    
+npe03__Recurring_Donation__c recDon = new npe03__Recurring_Donation__c();
+recDon.Name = 'Test Recurring Donation';
+recDon.npe03__Contact__c = '0034F000005qJaTQAU';
+recDon.npe03__Amount__c = 20;
+recDon.npe03__Installment_Period__c = 'Monthly';
+recDon.npe03__Installments__c = 3;
+insert recDon;
+*/

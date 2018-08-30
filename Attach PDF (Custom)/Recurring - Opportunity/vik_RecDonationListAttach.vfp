@@ -1,0 +1,89 @@
+<apex:page controller="vik_RecDonationAttachController">
+    <!--Header image -->
+    <!--img width="100%" src="https://vikash--c.na59.content.force.com/sfc/servlet.shepherd/version/renditionDownload?rendition=ORIGINAL_Png&versionId=068f4000002sWEH&operationContext=CHATTER&contentId=05Tf40000092U64" /-->   
+
+    <p style="font-family: sans-serif; font-size:14px;">
+    	Dear {!recurringDonation.npe03__Donor_Name__c},
+        <br/><br/>
+        Thank you for being our valuable customers. In regards to your recurring donation 
+        setup, we have provided some important information below. Please 
+        contact us, if you have any query related to the same.
+    </p>
+    <!--Description of payment-->
+    <table  style="font-family: sans-serif; font-size:14px; width:50%">
+        <tr>
+            <td><strong>Total Amount Donated:</strong></td>
+            <td>
+                $ <apex:outputText value="{0, number, ###,###,###,#00.00}">
+                <!--apex:param value="{!recurringDonation.npe03__Paid_Amount__c}" /-->
+                <apex:param value="{! IF(recurringDonation.npe03__Paid_Amount__c != null, recurringDonation.npe03__Paid_Amount__c, 0)}" />
+				</apex:outputText>
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Total Number of Donations:</strong></td>
+            <td>
+                <apex:outputText value="{0, number, ###}">
+				<apex:param value="{!recurringDonation.npe03__Installments__c}" />
+				</apex:outputText>
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Value of Successful Payments:</strong></td>
+            <td>
+                <apex:outputText value="{0, date, MMM dd, yyyy}">
+				<apex:param value="{! recurringDonation.npe03__Next_Payment_Date__c}" />
+				</apex:outputText>
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Recurring Donation Type:</strong></td>
+            <td>{! recurringDonation.npe03__Installment_Period__c}</td>
+        </tr>
+    </table><br/><br/>
+    
+    <!--Table for payments-->
+    <table style="width: 100%;">
+        <tr style="font-size: 14px; font-family: sans-serif; ">
+            <th style="padding: 8px;
+                       text-align: left; border-bottom: 2px solid #ddd;">Scheduled Date</th>
+            <th style="padding: 8px;
+                       text-align: left; border-bottom: 2px solid #ddd;">Donation Amount</th>
+            <th style="padding: 8px;
+                       text-align: left; border-bottom: 2px solid #ddd;">Stage</th>
+        </tr>
+        <apex:repeat value="{!opps}" var="pay">
+            <tr style="font-family: sans-serif; font-size: 14px;">
+                <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+                    <apex:outputText value="{0, date, MMM dd, yyyy}">
+                        <apex:Param value="{!pay.CloseDate}" />
+                    </apex:OutputText>
+                </td>
+                <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+                    $ <apex:outputText value="{0, number, ###,###,###,#00.00}">
+                    <apex:param value="{!pay.Amount}" />
+                    </apex:outputText>
+                </td>
+                <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+                    {!pay.StageName}
+                </td>
+            </tr>
+        </apex:repeat>
+    </table>
+    
+    <!--Signature-->
+    <br/><br/><br/><br/>
+    <p style="font-family: sans-serif; font-size:14px;">
+        Best Regards,<br/><br/><br/>
+        <img width="30%" src="https://firstresponders--partcopy--c.cs93.content.force.com/servlet/servlet.ImageServer?id=0154F0000000t8c&oid=00D4F0000000Ql3&lastMod=1530550107000" /><br/>
+        Random Person<br/>
+        CEO, UNO
+    </p>
+    <!--Disclaimer-->
+    <br/><br/><br/>
+    <hr></hr>
+    <p style="font-family: sans-serif; font-size:9px;">
+        Disclaimer: The information provided above is an estimate and cannot be used as a proof for the donation. 
+        Please reach out to us, to get a receipt of your donations, which would be valid across the government agencies.
+    </p>
+</apex:page>

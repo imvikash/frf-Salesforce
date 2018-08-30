@@ -1,0 +1,89 @@
+/*To generate a pdf to summarize all the important info about a Contact
+ * 
+ */
+
+public class vik_ContactSummaryAttachController {
+    public String contactId{
+        get{
+            System.debug('Getting Contact Id from parameter');
+            if(contactId == null &&
+               ApexPages.currentPage().getParameters().get('id') != null){
+                   contactId = ApexPages.currentPage().getParameters().get('id');
+               }
+            System.debug('Fetched Contact Id: ' + contactId);
+            return contactId;
+        }
+        set;
+    }
+    public Contact contact{
+        get{
+            System.debug('QUERY >>>> SELECT Name, Email, HomePhone, MobilePhone, MailingStreet, MailingCity, MailingState, MailingCountry, MailingPostalCode FROM Contact WHERE Id=' + contactId);
+            return [SELECT Name, Email, HomePhone, MobilePhone, MailingStreet, MailingCity, MailingState, MailingCountry, MailingPostalCode
+                    , npo02__FirstCloseDate__c, npo02__LastCloseDate__c, npo02__OppAmountThisYear__c, npo02__NumberOfClosedOpps__c, npo02__TotalOppAmount__c
+                    , npo02__LastMembershipLevel__c, npo02__MembershipJoinDate__c, npo02__MembershipEndDate__c, npo02__TotalMembershipOppAmount__c
+                    FROM Contact 
+                    WHERE Id=:contactId];
+        }
+        set;
+    }
+    public List<Opportunity> opps{
+        get{
+            System.debug('SELECT CloseDate, Amount, Payment_Method__c FROM Opportunity WHERE npsp__Primary_Contact__c=' + contactId + ' AND StageName=Posted ORDER BY DESC CloseDate LIMIT 5');
+            return [SELECT CloseDate, Amount, Payment_Method__c FROM Opportunity
+                        WHERE npsp__Primary_Contact__c=:contactId
+                        AND StageName='Posted'
+                        ORDER BY CloseDate DESC LIMIT 5];
+        }
+    }
+    public List<Opportunity> comingOpps{
+        get{
+            System.debug('Getting next 5 opps - SELECT CloseDate, Amount FROM Opportunity WHERE npsp__Primary_Contact__c=' + contactId + ' AND StageName=Pledged AND CloseDate >= TODAY ORDER BY CloseDate LIMIT 5');
+            List<Opportunity> tempOpps = [SELECT CloseDate, Amount, Description, npe03__Recurring_Donation__c FROM Opportunity
+                                            WHERE npsp__Primary_Contact__c=:contactId 
+                                            AND StageName='Pledged' AND CloseDate >= TODAY
+                                            ORDER BY CloseDate LIMIT 5];
+            System.debug('Size of comingOpps: ' + tempOpps.size());
+            
+            //Getting the field description to temporarily hold the payment details from the customer code.
+            for(Opportunity opp:tempOpps){
+                List<IATSPayment__IATS_Customer_Code__c> customerCode = [SELECT Name, IATSPayment__ACH_Account_Number__c, IATSPayment__Credit_Card_Number__c
+                                                                            FROM IATSPayment__IATS_Customer_Code__c
+                                                                            WHERE IATS_recurring__Recurring_Donation__c=:opp.npe03__Recurring_Donation__c];
+                if(customerCode.size() > 0){
+                    if(String.isNotBlank(customerCode[0].IATSPayment__ACH_Account_Number__c))
+                        opp.Description = 'Account: ' + customerCode[0].IATSPayment__ACH_Account_Number__c;
+                    else if(String.isNotBlank(customerCode[0].IATSPayment__Credit_Card_Number__c))
+                        opp.Description = 'Credit Card: ' + customerCode[0].IATSPayment__Credit_Card_Number__c;
+                    else
+                        opp.Description = 'Not Set';
+                }
+            }
+            return tempOpps;
+        }
+        set;
+    }
+    public List<npe03__Recurring_Donation__c> recSetup{
+        get{
+            System.debug('SELECT npe03__Date_Established__c, npe03__Installment_Amount__c, npe03__Installment_Period__c, npe03__Next_Payment_Date__c, npe03__Paid_Amount__c, Temp_String__c FROM npe03__Recurring_Donation__c WHERE npe03__Contact__c=' + contactId);
+            List<npe03__Recurring_Donation__c> tempRec = [SELECT npe03__Date_Established__c, npe03__Installment_Amount__c, npe03__Installment_Period__c, npe03__Next_Payment_Date__c, npe03__Paid_Amount__c, Temp_String__c
+                                                            FROM npe03__Recurring_Donation__c
+                                                            WHERE npe03__Contact__c=:contactId];
+            System.debug('Size of Recurring Donations: '+ tempRec.size());
+            for(npe03__Recurring_Donation__c rec:tempRec){
+                List<IATSPayment__IATS_Customer_Code__c> customerCode = [SELECT Name, IATSPayment__ACH_Account_Number__c, IATSPayment__Credit_Card_Number__c
+                                                                            FROM IATSPayment__IATS_Customer_Code__c
+                                                                            WHERE IATS_recurring__Recurring_Donation__c=:rec.Id];
+                if(customerCode.size() > 0){
+                    if(String.isNotBlank(customerCode[0].IATSPayment__ACH_Account_Number__c))
+                        rec.Temp_String__c = 'Account: ' + customerCode[0].IATSPayment__ACH_Account_Number__c;
+                    else if(String.isNotBlank(customerCode[0].IATSPayment__Credit_Card_Number__c))
+                        rec.Temp_String__c = 'Credit Card: ' + customerCode[0].IATSPayment__Credit_Card_Number__c;
+                    else
+                        rec.Temp_String__c = 'Not Set';
+                }
+            }
+            return tempRec;
+        }
+        set;
+    }
+}

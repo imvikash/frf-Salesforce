@@ -1,0 +1,17 @@
+global class vik_IncludeAttachmentsController {
+    global String pageContents{get; set;}
+    global String opportunityObjectId{get; set {
+        UpdateContents(value);
+    }}
+    
+    public void UpdateContents(String opportunityObjectId){
+        try{
+            PageReference pageRef = Page.vik_oppPayAttachment;
+            pageRef.getParameters().put('opportunityId', opportunityObjectId);
+            
+            pageContents = pageRef.getContent().toString().replace('<html style="display:none !important;">', '<html>');
+        } catch(Exception ex) {
+            pageContents = 'Unable to fetch the payment information on this opportunity.';
+        }
+    }
+}

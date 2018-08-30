@@ -1,0 +1,24 @@
+public class vik_OppPaymentsController {
+    
+    public String OpportunityId{
+        get{
+            if(OpportunityId == null &&
+               ApexPages.currentPage().getParameters().get('OpportunityId') != null){
+                   //OpportunityId = '006f400000CdtQjAAJ';
+                   OpportunityId = ApexPages.currentPage().getParameters().get('OpportunityId');
+               }
+            return OpportunityId;
+        }
+        set;
+    }
+    public Opportunity Opp {
+        get{
+            return [SELECT npsp__Primary_Contact__r.FirstName, Name, Amount, npe01__Number_of_Payments__c, npe01__Payments_Made__c, npe01__Amount_Written_Off__c, (
+                        SELECT npe01__Scheduled_Date__c, npe01__Payment_Amount__c, Payment_Status__c
+                        FROM Opportunity.npe01__OppPayment__r)
+                    FROM Opportunity
+                    WHERE Id= :OpportunityId LIMIT 1];
+        } 
+        set;
+    }
+}
