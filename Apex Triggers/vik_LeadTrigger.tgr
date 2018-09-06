@@ -1,0 +1,43 @@
+trigger vik_LeadTrigger on Lead (after insert) {
+	System.debug('Lead Trigger initiated.');
+    
+    for(Lead lead: Trigger.New){
+        if(lead.LeadSource != 'Web'){
+            System.debug('Not a Web Lead.. EXIT');
+            continue;
+        }
+        System.debug('Web Lead found!');
+        String emailResult;
+        List<String> toRecipients = new List<String>{lead.Email};
+        String templateApiName = 'Web_Lead_Acknowledgement';
+        Id targetObjId = lead.Id;
+        String orgWideEmailAddress = 'First Responders Foundation';
+        Boolean saveAsActivity = true;
+        try{
+            System.debug('Attempting email to: ' + toRecipients);
+            emailResult = vik_sendEmail.sendTemplatedEmail(toRecipients, null, templateApiName, targetObjId, null, orgWideEmailAddress, saveAsActivity);
+        } catch(Exception e){
+            System.debug('Failed to send email acknowledgement. Error-' + e.getMessage());
+        }
+    }
+}
+
+/*
+List<Lead> leads = new List<Lead>();
+Lead newLead = new Lead();
+newLead.FirstName='Wild';
+newLead.LastName= 'Fire';
+newLead.Email= 'im.kumarvikash@gmail.com';
+newLead.LeadSource = 'Web';
+newLead.Company = '[not provided]';
+leads.add(newLead);
+
+newLead = new Lead();
+newLead.FirstName='Old';
+newLead.LastName= 'Fire';
+newLead.Email= 'im.kumarvikash@gmail.com';
+newLead.Company = '[not provided]';
+leads.add(newLead);
+
+insert leads;
+ */

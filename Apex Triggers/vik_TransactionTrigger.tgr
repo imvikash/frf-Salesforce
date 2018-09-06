@@ -4,7 +4,7 @@ trigger vik_TransactionTrigger on IATSPayment__Transaction__c (after insert) {
     for(IATSPayment__Transaction__c trans : trigger.new){ 
         
         System.debug('vik_TransactionTrigger initiated');
-        Opportunity[] opp = [SELECT Id, npsp__Primary_Contact__c, recordtypeid  FROM Opportunity WHERE Id= :trans.IATSPayment__Opportunity__c];
+        Opportunity[] opp = [SELECT Id, npsp__Primary_Contact__c, recordtypeid, Free_Gift_Type__c, Shirt_Size__c  FROM Opportunity WHERE Id= :trans.IATSPayment__Opportunity__c];
         
 //A. If there is no opportunity present (erroneous case) or transaction declined
         if(opp.isEmpty()){
@@ -63,43 +63,87 @@ trigger vik_TransactionTrigger on IATSPayment__Transaction__c (after insert) {
         upsert opp[0];
         
     //__b. Update Payment Method in Corresponding Payment
-        List<npe01__OppPayment__c> pay = [SELECT Name, npe01__Payment_Method__c FROM npe01__OppPayment__c 
-                                            WHERE npe01__Opportunity__c = :opp[0].id AND npe01__Payment_Amount__c=:trans.IATSPayment__Amount_currency__c];
-        pay[0].npe01__Payment_Method__c = trans.IATSPayment__Method_of_Payment__c;
-        upsert pay[0];
+        try{
+            List<npe01__OppPayment__c> pay = [SELECT Name, npe01__Payment_Method__c FROM npe01__OppPayment__c 
+                                                WHERE npe01__Opportunity__c = :opp[0].id AND npe01__Payment_Amount__c=:trans.IATSPayment__Amount_currency__c];
+            pay[0].npe01__Payment_Method__c = trans.IATSPayment__Method_of_Payment__c;
+            upsert pay[0];
+        } catch (Exception e){
+            System.debug('Failed to update Payment Method');
+            vik_sendEmail.sendError('Failed to update Payment Method for - ' + opp[0].Id);
+        }
         
     //__c. Send Email if approved
-        Contact[] con = [SELECT Id, Email FROM Contact WHERE Id= :opp[0].npsp__Primary_Contact__c];
-        List<String> toRecipients=new List<String>{con[0].Email};
-        List<String> ccRecipients=new List<String>{'im.kumarvikash@gmail.com'};
-        Id targetObjId=opp[0].npsp__Primary_Contact__c;
-        Id whatId=opp[0].Id;
-        String orgWideEmailAddress='First Responders Foundation';
-        Boolean saveAsActivity=TRUE;
-        String templateApiName='Payment_Acknowledgement';
-        System.debug('Checking if Record Type is Membership for Opportunity: ' + opp[0].Id + ' with Record Type: ' + opp[0].recordtypeid);
-        if(Schema.SObjectType.Opportunity.getRecordTypeInfosById().get(opp[0].recordtypeid).getname().equals('Membership')){
-            templateApiName='Membership_Acknowledgement';
-            System.debug('Record Type: Membership');
+    	List<String> toRecipients=new List<String>();
+        List<String> ccRecipients=new List<String>();
+        List<Contact> con = new List<Contact>();
+        try{
+            con = [SELECT Id, Name, Email, npe01__Home_Address__c, Phone FROM Contact WHERE Id= :opp[0].npsp__Primary_Contact__c];
+            toRecipients=new List<String>{con[0].Email};
+            ccRecipients=new List<String>{'im.kumarvikash@gmail.com'};
+            Id targetObjId=opp[0].npsp__Primary_Contact__c;
+            Id whatId=opp[0].Id;
+            String orgWideEmailAddress='First Responders Foundation';
+            Boolean saveAsActivity=TRUE;
+            String templateApiName='Payment_Acknowledgement';
+            System.debug('Checking if Record Type is Membership for Opportunity: ' + opp[0].Id + ' with Record Type: ' + opp[0].recordtypeid);
+            if(Schema.SObjectType.Opportunity.getRecordTypeInfosById().get(opp[0].recordtypeid).getname().equals('Membership')){
+                templateApiName='Membership_Acknowledgement';
+                System.debug('Record Type: Membership');
+            }
+            System.debug('Record Type: Donation');
+            
+            String emailResult = vik_sendEmail.sendTemplatedEmail(toRecipients, null, templateApiName, targetObjId, whatId, orgWideEmailAddress, saveAsActivity);
+            System.debug(LoggingLevel.INFO,'** entered PostedOppTrigger, to:' + toRecipients + ' cc:' + ccRecipients +  ' templateAPI:' + templateApiName + ' tagetObjId:' + targetObjId + 
+                            ' whatId:' + whatId + ' orgWideEmailId: ' + orgWideEmailAddress);    
+                    
+            if(emailResult.equalsIgnoreCase('success')){
+                //Update Acknowledgement Date and Status
+                opp[0].npsp__Acknowledgment_Status__c = 'Acknowledged';
+                opp[0].npsp__Acknowledgment_Date__c = Date.today();
+            }
+            else{
+                //Update Acknowledgement Status
+                opp[0].npsp__Acknowledgment_Status__c = 'Email Acknowledgment Not Sent';
+            }
+            upsert(opp[0]);
+            System.debug('Opportunity Acknowledgement Status updated.');
+        } catch (Exception e){
+            vik_sendEmail.sendError('There was a problem sending email for the Gift Id' + opp[0].Id);
         }
-        System.debug('Record Type: Donation');
         
-        String emailResult = vik_sendEmail.sendTemplatedEmail(toRecipients, null, templateApiName, targetObjId, whatId, orgWideEmailAddress, saveAsActivity);
-        System.debug(LoggingLevel.INFO,'** entered PostedOppTrigger, to:' + toRecipients + ' cc:' + ccRecipients +  ' templateAPI:' + templateApiName + ' tagetObjId:' + targetObjId + 
-                        ' whatId:' + whatId + ' orgWideEmailId: ' + orgWideEmailAddress);    
-        
-        
-        if(emailResult.equalsIgnoreCase('success')){
-            //Update Acknowledgement Date and Status
-            opp[0].npsp__Acknowledgment_Status__c = 'Acknowledged';
-            opp[0].npsp__Acknowledgment_Date__c = Date.today();
+        //If Booster Club with a gift, send email to vendor
+        System.debug('Record Type: ' + Schema.SObjectType.Opportunity.getRecordTypeInfosById().get(opp[0].recordtypeid).getname() + ', Free Gift: ' + opp[0].Free_Gift_Type__c);
+        if(Schema.SObjectType.Opportunity.getRecordTypeInfosById().get(opp[0].recordtypeid).getname().equals('Membership') && opp[0].Free_Gift_Type__c!='I registered at an event and have already received my gift' && opp[0].Free_Gift_Type__c!='I do not wish to receive a gift to maximize my contribution' && opp[0].Free_Gift_Type__c != null){
+            System.debug('Preparing email for the vendor');
+            try{
+                Contact[] vendor = [SELECT FirstName, Email FROM Contact WHERE Account.Name='Merchandise Vendor_FRF (Internal)' LIMIT 1];
+                toRecipients=new List<String>{vendor[0].Email};
+                //ccRecipients=new List<String>{'contact@firstrespondersomaha.org'};
+                System.debug('Vendor Found: ' + vendor[0].FirstName + ' (' + vendor[0].Email + ')');
+                String subject = 'FRF: New Booster Club Member with Gift- ' + opp[0].Free_Gift_Type__c;
+                String plainBody = 'Dear ' + vendor[0].FirstName + ',\n\n'
+                     + 'We have received a new membership request with the below details- \n\n'
+                    + '\tName - ' + con[0].Name
+                    + '\n\tGift Type - ' + opp[0].Free_Gift_Type__c
+                    + '\n\tT-Shirt Size - ' + opp[0].Shirt_Size__c + '. (Please ignore this field if Gift Type is not a T-Shirt)'
+                    + '\n\tAddress - ' + con[0].npe01__Home_Address__c
+                    + '\n\tPhone - ' + con[0].Phone
+                    + '\n\n*Please note that this is a system generated email.'
+                    + '\n\nBest regards,\nFirst Responders Foundation';
+                String sentStatus = vik_sendEmail.sendPlainEmail(toRecipients, ccRecipients, subject, plainBody);
+                if(sentStatus != 'success'){
+                    vik_sendEmail.sendError('The below email failed to be sent to the vendor -\n\n' + plainBody);
+                }
+            } catch (Exception e){
+                System.debug('Email failed to send. Please check if there are any vendors added.' + e.getMessage());
+                String errorBody = 'There was a problem emailing the vendor for a new Booster Club Member. ' + 
+                    'Please verify if there is any vendor added. Please use the below information to troubleshoot -\n\n'
+                    + '\nContact Id: ' + con[0].Id
+                    + '\nGift/Membership Id: ' + opp[0].Id;
+                vik_sendEmail.sendError(errorBody);
+            }
         }
-        else{
-            //Update Acknowledgement Status
-            opp[0].npsp__Acknowledgment_Status__c = 'Email Acknowledgment Not Sent';
-        }
-        upsert(opp[0]);
-        System.debug('Opportunity Acknowledgement Status updated.');
     }
 }
 
